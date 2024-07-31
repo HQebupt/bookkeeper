@@ -85,6 +85,7 @@ public class EntryLogCompactor extends AbstractLogCompactor {
         EntryLogScanner newScanner(final EntryLogMetadata meta) {
 
             return new EntryLogScanner() {
+                //hq compaction: 扫描EntryLog，找到有效的ledger数据，在process方法里，写入到新文件里
                 @Override
                 public boolean accept(long ledgerId) {
                     return meta.containsLedger(ledgerId);

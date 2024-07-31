@@ -1210,6 +1210,8 @@ public class BookKeeper implements org.apache.bookkeeper.client.api.BookKeeper {
      * @param ctx
      *          optional control object
      */
+    //hq fence: recovery 保证只要写到了1个bookie，就会复制满足副本个数。
+    // 如果1个broker发送写请求后，只到了1个bookie，最后recovery到副本个数的话，那这个entry broker会写重复吗？
     public void asyncOpenLedger(final long lId, final DigestType digestType, final byte[] passwd,
                                 final OpenCallback cb, final Object ctx) {
         closeLock.readLock().lock();

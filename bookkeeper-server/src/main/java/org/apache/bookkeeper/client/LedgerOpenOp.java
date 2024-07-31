@@ -187,12 +187,14 @@ class LedgerOpenOp {
             return;
         }
 
+        //hq fence: ledger是关闭的，直接返回，broker就会新开一个ledger写入；如果是异常的，就走下面的recovery逻辑
         if (metadata.isClosed()) {
             // Ledger was closed properly
             openComplete(BKException.Code.OK, lh);
             return;
         }
 
+        //hq fence: recovery逻辑
         if (doRecovery) {
             lh.recover(new OrderedGenericCallback<Void>(bk.getMainWorkerPool(), ledgerId) {
                 @Override

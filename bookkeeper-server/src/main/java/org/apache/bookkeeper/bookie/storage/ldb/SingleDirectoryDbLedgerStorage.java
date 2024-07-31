@@ -1162,6 +1162,7 @@ public class SingleDirectoryDbLedgerStorage implements CompactableLedgerStorage 
 
             @Override
             public void diskFull(File disk) {
+                //hq gc: 磁盘超过85%了，会强制Major GC（Dop选这个） 或者推迟GC
                 if (gcThread.isForceGCAllowWhenNoSpace()) {
                     gcThread.enableForceGC();
                 } else {

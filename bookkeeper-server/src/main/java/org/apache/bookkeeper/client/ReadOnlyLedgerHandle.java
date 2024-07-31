@@ -262,6 +262,7 @@ class ReadOnlyLedgerHandle extends LedgerHandle implements LedgerMetadataListene
             BKException.Code.OK,
             clientCtx.getClientStats().getRecoverOpLogger());
 
+        //hq fence: 如果是open的ledger，会被更新成IN_RECOVERY状态
         MetadataUpdateLoop.NeedsUpdatePredicate needsUpdate =
             (metadata) -> metadata.getState() == LedgerMetadata.State.OPEN;
         if (forceRecovery) {
@@ -280,12 +281,14 @@ class ReadOnlyLedgerHandle extends LedgerHandle implements LedgerMetadataListene
                     if (metadata.getValue().isClosed()) {
                         return CompletableFuture.completedFuture(ReadOnlyLedgerHandle.this);
                     } else {
+                        //hq fence: 执行恢复流程：读取LAC的值，从LAC位置开始往前读取并恢复
                         return new LedgerRecoveryOp(ReadOnlyLedgerHandle.this, clientCtx)
                             .setEntryListener(listener)
                             .initiate();
                     }
             })
-            .thenCompose((ignore) -> closeRecovered())
+                //hq fence: 更新整个Ledger元数据，包括LAC值、State=Close
+                .thenCompose((ignore) -> closeRecovered())
             .whenComplete((ignore, ex) -> {
                     if (ex != null) {
                         cb.operationComplete(

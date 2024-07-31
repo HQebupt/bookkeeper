@@ -411,13 +411,16 @@ public class GarbageCollectorThread implements Runnable {
         try {
             // gc inactive/deleted ledgers
             // this is used in extractMetaFromEntryLogs to calculate the usage of entry log
+            //hq gc: 判断 LedgersMap 中哪些 Ledger 和 Entrylog 可以删除。
             doGcLedgers();
 
             // Extract all of the ledger ID's that comprise all of the entry logs
             // (except for the current new one which is still being written to).
+            //hq gc: 读取ledger的元数据信息，记录成<ledgerId,logId信息>
             extractMetaFromEntryLogs();
 
             // gc entry logs
+            //hq gc: 删除没有活跃ledger的entry log
             doGcEntryLogs();
 
             if (suspendMajor) {
@@ -427,6 +430,7 @@ public class GarbageCollectorThread implements Runnable {
                 LOG.info("Disk full, suspend minor compaction to slow down filling disk.");
             }
 
+            //hq compaction: 根据EntryLog文件的有效数据使用率排序，从旧的 EntryLog 文件读取有效数据写入到新的 EntryLog 文件，做数据整理
             long curTime = System.currentTimeMillis();
             if (((isForceMajorCompactionAllow && force) || (enableMajorCompaction
                     && (force || curTime - lastMajorCompactionTime > majorCompactionInterval)))

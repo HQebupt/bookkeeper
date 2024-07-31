@@ -483,6 +483,7 @@ public class ZKRegistrationManager implements RegistrationManager {
             CreateMode.PERSISTENT));
 
         // create INSTANCEID
+        //hq server: bookie集群初始化的instanceId是16字节的UUID
         String instanceId = UUID.randomUUID().toString();
         multiOps.add(Op.create(instanceIdPath, instanceId.getBytes(UTF_8),
                 zkAcls, CreateMode.PERSISTENT));

@@ -375,6 +375,10 @@ public class RoundRobinDistributionSchedule implements DistributionSchedule {
             covered[bookieIndexHeardFrom] = rc;
         }
 
+        /** hq ack rules:
+         * 由于当前 Bookie 节点不能保证全部存活，同时需要满足快速恢复，所以需要考虑客户端至少收到多少个成功响应，才能认为 Fence 操作执行成功。这里可以反过来想一下，客户端每次需要写入 Qw 个节点，然后收到 Qa 个成功响应就能认为写入成功，我们只需要让其凑不足 Qa 个成功响应就好了，也就是我们 Fence 掉的节点数只要大于 Qw - Qa，那写入客户端就一定凑不足 Qa 个成功响应，我们暂且称这个数量为 Qf。例子如下：
+         * 实际 BK 中实现的代码逻辑是统计任意 writeSet 未成功响应数大于等于 Qa 都认为未成功（功能一致）
+         */
         @Override
         public synchronized boolean checkCovered() {
             // now check if there are any write quorums, with |ackQuorum| nodes available

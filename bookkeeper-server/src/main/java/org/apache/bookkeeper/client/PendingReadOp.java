@@ -381,6 +381,8 @@ class PendingReadOp extends ReadOpBase implements ReadEntryCallback  {
             }
             erroredReplicas.set(replica);
 
+            //hq fence: fence时恢复LAC，必须要达到ackQ的个数才能恢复。这里 requiredBookiesMissingEntryForRecovery 值对应为 Qf，如果凑足了 Qf
+            // 个明确不存在响应，返回数据不存在，恢复结束
             if (isRecoveryRead && (numBookiesMissingEntry >= requiredBookiesMissingEntryForRecovery)) {
                 /* For recovery, report NoSuchEntry as soon as wQ-aQ+1 bookies report that they do not
                  * have the entry */
@@ -388,7 +390,7 @@ class PendingReadOp extends ReadOpBase implements ReadEntryCallback  {
                 return;
             }
 
-            if (!readsOutstanding()) {
+            if (!readsOutstanding()) {//hq fence:还存在未读节点，继续读取下一个节点
                 sendNextRead();
             }
         }

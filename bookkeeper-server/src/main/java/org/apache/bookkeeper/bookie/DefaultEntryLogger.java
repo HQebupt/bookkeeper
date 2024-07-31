@@ -1015,6 +1015,12 @@ public class DefaultEntryLogger implements EntryLogger {
                     LOG.warn("Short read for entry size from entrylog {}", entryLogId);
                     return;
                 }
+                // hq compaction: 读扫描限速，Dop特有
+                /*
+                if (throttler != null && readBytesPair.getRight() > 0) {
+                    throttler.acquire(readBytesPair.getRight());
+                }
+                */
                 long offset = pos;
 
                 int entrySize = headerBuffer.readInt();
@@ -1041,6 +1047,9 @@ public class DefaultEntryLogger implements EntryLogger {
                             entryLogId, pos, rc, entrySize);
                     return;
                 }
+                //hq compaction: 有效数据限速和写入到新文件
+
+
                 // process the entry
                 scanner.process(ledgerId, offset, data);
 

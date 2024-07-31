@@ -79,6 +79,7 @@ class ReadEntryProcessor extends PacketProcessorBase<ReadRequest> {
                         requestHandler.ctx().channel().remoteAddress());
 
                 if (request.hasMasterKey()) {
+                    //hq fence：bookie收到fence请求的读请求，会更新ledger状态为fence，让这个ledger无法被写。
                     fenceResult = requestProcessor.getBookie().fenceLedger(request.getLedgerId(),
                             request.getMasterKey());
                 } else {

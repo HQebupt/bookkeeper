@@ -92,6 +92,7 @@ class LedgerRecoveryOp implements ReadEntryListener, AddCallback {
     }
 
     public CompletableFuture<LedgerHandle> initiate() {
+        //hq fence:从多个bookie节点读取到LAC后，开始更新自己的LAC和LAP值，准备恢复
         ReadLastConfirmedOp rlcop = new ReadLastConfirmedOp(clientCtx.getBookieClient(),
                                                             lh.distributionSchedule,
                                                             lh.macManager,
@@ -117,7 +118,7 @@ class LedgerRecoveryOp implements ReadEntryListener, AddCallback {
                                         .getAllEnsembles()
                                         .lastEntry()
                                         .getKey();
-
+                                //hq fence:由于 ensemblechange 时也会记录当时 LAC 到 ZK，这里使用 max(zkLac，bookieLac)作为初始 LAC
                                 lh.lastAddPushed = lh.lastAddConfirmed = Math.max(data.getLastAddConfirmed(),
                                         (lastEnsembleEntryId - 1));
 
@@ -164,6 +165,7 @@ class LedgerRecoveryOp implements ReadEntryListener, AddCallback {
     /**
      * Try to read past the last confirmed.
      */
+    //hq fence:从LAC的位置开始恢复读取Entry，并把Entry写到足够多的副本
     private void doRecoveryRead() {
         if (!promise.isDone()) {
             startEntryToRead = endEntryToRead + 1;
@@ -201,6 +203,8 @@ class LedgerRecoveryOp implements ReadEntryListener, AddCallback {
                 }
             }
             if (BKException.Code.OK == rc) {
+                //hq fence:读取Entry后，把Entry写到其他Bookie节点
+                // 读取成功后，会回写数据到 writeSet，回写成功后(Qa个成功响应)，LAC 会和普通写入一样正常推进LAC
                 lh.asyncRecoveryAddEntry(data, 0, data.length, this, null);
                 if (entry.getEntryId() == endEntryToRead) {
                     // trigger next batch read

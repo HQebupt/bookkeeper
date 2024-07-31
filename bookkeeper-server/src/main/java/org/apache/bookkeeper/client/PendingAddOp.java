@@ -243,6 +243,9 @@ class PendingAddOp implements WriteCallback {
         checkNotNull(lh.macManager);
 
         int flags = isRecoveryAdd ? FLAG_RECOVERY_ADD | FLAG_HIGH_PRIORITY : FLAG_NONE;
+
+        //hq addEntry:LAC的值持久化到每一条消息里，每次发送时，携带最新的LAC值：最新的 LAC 需要等下一轮的消息写入才会一起存储到 Bookie，所以 Bookie 中存储的 LAC 与实际的 LAC
+        // 相比是存在一定滞后
         this.toSend = lh.macManager.computeDigestAndPackageForSending(
                 entryId, lh.lastAddConfirmed, currentLedgerLength,
                 payload, lh.ledgerKey, flags);
@@ -254,6 +257,7 @@ class PendingAddOp implements WriteCallback {
         lh.maybeHandleDelayedWriteBookieFailure();
 
         // Iterate over set and trigger the sendWriteRequests
+        //hq addEntry:条带化写入选择不同的bookie，并行写入
         for (int i = 0; i < lh.distributionSchedule.getWriteQuorumSize(); i++) {
             sendWriteRequest(ensemble, lh.distributionSchedule.getWriteSetBookieIndex(entryId, i));
         }
@@ -275,7 +279,7 @@ class PendingAddOp implements WriteCallback {
         // must record all acks, even if complete (completion can be undone by an ensemble change)
         boolean ackQuorum = false;
         if (BKException.Code.OK == rc) {
-            ackQuorum = ackSet.completeBookieAndCheck(bookieIndex);
+            ackQuorum = ackSet.completeBookieAndCheck(bookieIndex);//hq addEntry: ackQuorum 生效的地方
             addEntrySuccessBookies.add(ensemble.get(bookieIndex));
         }
 
@@ -350,7 +354,7 @@ class PendingAddOp implements WriteCallback {
             } else {
                 LOG.warn("Failed to write entry ({}, {}) to bookie ({}, {}): {}",
                         ledgerId, entryId, bookieIndex, addr, BKException.getMessage(rc));
-                lh.handleBookieFailure(ImmutableMap.of(bookieIndex, addr));
+                lh.handleBookieFailure(ImmutableMap.of(bookieIndex, addr));//hq addEntry:写失败遇到这些错误，触发Ensemble change
             }
             return;
         }
@@ -371,7 +375,7 @@ class PendingAddOp implements WriteCallback {
                     writeDelayedStartTime = MathUtils.nowInNano();
                 }
             } else {
-                completed = true;
+                completed = true;//hq addEntry: ackQuorum 达到目标后，返回给pulsar broker
                 this.qwcLatency = MathUtils.elapsedNanos(requestTimeNanos);
 
                 if (writeDelayedStartTime != -1) {

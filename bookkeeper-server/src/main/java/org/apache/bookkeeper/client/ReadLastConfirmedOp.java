@@ -87,8 +87,8 @@ class ReadLastConfirmedOp implements ReadEntryCallback {
         for (int i = 0; i < currentEnsemble.size(); i++) {
             bookieClient.readEntry(currentEnsemble.get(i),
                                    ledgerId,
-                                   BookieProtocol.LAST_ADD_CONFIRMED,
-                                   this, i, BookieProtocol.FLAG_DO_FENCING,
+                                   BookieProtocol.LAST_ADD_CONFIRMED,// hq fence: 读取LAC
+                                   this, i, BookieProtocol.FLAG_DO_FENCING,//hq fence: 让bookie状态变成Fencing
                                    ledgerKey);
         }
     }
@@ -106,6 +106,7 @@ class ReadLastConfirmedOp implements ReadEntryCallback {
         if (rc == BKException.Code.OK) {
             try {
                 RecoveryData recoveryData = digestManager.verifyDigestAndReturnLastConfirmed(buffer);
+                //hq fence:读取LAC，取最大的LAC值
                 if (recoveryData.getLastAddConfirmed() > maxRecoveredData.getLastAddConfirmed()) {
                     maxRecoveredData = recoveryData;
                 }
@@ -134,6 +135,8 @@ class ReadLastConfirmedOp implements ReadEntryCallback {
         }
 
         // other return codes dont count as valid responses
+        //hq fence: 一旦足够多的bookies响应Fence请求（Ensemble Coverage responses），进入下一阶段
+        // 说明：连续w个bookie，未知bookie node数量小于ack数量，比如covered:"QuorumCoverage(e:7,w:3,a:2)=[0，0，0，1，0，0，1]", 返回true
         if (heardValidResponse
             && coverageSet.checkCovered()
             && !completed) {

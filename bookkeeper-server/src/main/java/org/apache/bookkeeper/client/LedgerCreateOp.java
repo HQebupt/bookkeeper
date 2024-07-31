@@ -190,6 +190,7 @@ class LedgerCreateOp {
         }
     }
 
+    //hq addEntry: 创建ledger id，成功后把ledger元数据写入zk
     void generateLedgerIdAndCreateLedger(LedgerMetadataBuilder metadataBuilder) {
         // generate a ledgerId
         final LedgerIdGenerator ledgerIdGenerator = bk.getLedgerIdGenerator();

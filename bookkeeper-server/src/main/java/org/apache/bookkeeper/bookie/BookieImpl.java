@@ -1096,6 +1096,8 @@ public class BookieImpl implements Bookie {
         try {
             LedgerDescriptor handle = getLedgerForEntry(entry, masterKey);
             synchronized (handle) {
+                //hq addEntry: broker的生产请求到bookie后，再次检查是否是 fence
+                // LedgerDescriptor是用于管理和操作ledger, 包含了对ledger的读写、访问控制和fence操作的实现
                 if (handle.isFenced()) {
                     throw BookieException
                             .create(BookieException.Code.LedgerFencedException);

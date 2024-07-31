@@ -88,6 +88,13 @@ public class ZkLedgerAuditorManager implements LedgerAuditorManager {
         this.electionAttempts = statsLogger.getCounter(ELECTION_ATTEMPTS);
     }
 
+    /**
+     * hq auditor: 选举规则总结
+     * ①每个 Bookie 创建一个临时顺序节点作为投票。
+     * ①所有投票节点按顺序号排序，顺序号最小的节点对应的 Bookie 成为 Auditor。
+     * ①非 Auditor 的 Bookie 监视其前一个节点，等待前一个节点删除后重新进行选举。
+     * ①选举过程中遇到 Zookeeper 异常时，抛出异常并重新进行选举。
+     */
     @Override
     public void tryToBecomeAuditor(String bookieId, Consumer<AuditorEvent> listener)
             throws IOException, InterruptedException {

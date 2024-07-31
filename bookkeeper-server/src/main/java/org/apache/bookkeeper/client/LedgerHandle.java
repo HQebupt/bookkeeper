@@ -1590,7 +1590,7 @@ public class LedgerHandle implements WriteHandle {
             // the ledger isn't closed between checking and
             // updating lastAddPushed
             if (isHandleWritable()) {
-                long entryId = ++lastAddPushed;
+                long entryId = ++lastAddPushed;//hq addEntry: Entry写入一定是自增的，有LAP保障
                 long currentLedgerLength = addToLength(op.payload.readableBytes());
                 op.setEntryId(entryId);
                 op.setLedgerLength(currentLedgerLength);
@@ -2111,7 +2111,7 @@ public class LedgerHandle implements WriteHandle {
             explicitLacFlushPolicy.updatePiggyBackedLac(lastAddConfirmed);
             pendingAddsSequenceHead = pendingAddOp.entryId;
             if (!writeFlags.contains(WriteFlag.DEFERRED_SYNC)) {
-                this.lastAddConfirmed = pendingAddsSequenceHead;
+                this.lastAddConfirmed = pendingAddsSequenceHead;//hq addEntry: LAC在写成功后更新内存值，限制读数据的水位线，保证一致性
             }
 
             pendingAddOp.submitCallback(BKException.Code.OK);
@@ -2190,6 +2190,7 @@ public class LedgerHandle implements WriteHandle {
         }
     }
 
+    //hq addEntry: ensembleChange细节
     void ensembleChangeLoop(List<BookieId> origEnsemble, Map<Integer, BookieId> failedBookies) {
         int ensembleChangeId = numEnsembleChanges.incrementAndGet();
         ensembleChangeCounter.inc();
@@ -2277,6 +2278,7 @@ public class LedgerHandle implements WriteHandle {
                             }
                         }
                         if (newEnsemble != null) { // unsetSuccess outside of lock
+                            //hq addEntry: 向ensemble change的节点发送写失败的数据
                             unsetSuccessAndSendWriteRequest(newEnsemble, replaced);
                         }
                     }
