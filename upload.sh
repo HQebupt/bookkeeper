@@ -1,4 +1,5 @@
 git co readOnly
+git pull origin master
+git add -A && git commit -m 'read code'
 git rebase master
-git add -A && git commit -m 'read code' && git push origin readOnly
-
+git push origin readOnly
